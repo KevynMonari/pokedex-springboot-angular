@@ -60,9 +60,9 @@ public class PokemonService {
 
     public Pokemon getPokemonById(int id) {
 
-        if (id <= 0){
+        if (id <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ID inválido");
-        } 
+        }
 
         String url = "https://pokeapi.co/api/v2/pokemon/" + id;
         PokeDetail detail = restTemplate.getForObject(url, PokeDetail.class);
@@ -72,6 +72,38 @@ public class PokemonService {
         }
 
         // Tratamento da imagem
+        String imageUrl = null;
+        if (detail.getSprites() != null) {
+            if (detail.getSprites().getOther() != null
+                    && detail.getSprites().getOther().getDreamWorld() != null) {
+                imageUrl = detail.getSprites().getOther().getDreamWorld().getFrontDefault();
+            }
+            if (imageUrl == null) {
+                imageUrl = detail.getSprites().getFrontDefault();
+            }
+        }
+
+        return new Pokemon(
+                detail.getId(),
+                detail.getName(),
+                detail.getTypes().stream().map(t -> t.getType().getName()).toList(),
+                detail.getAbilities().stream().map(a -> a.getAbility().getName()).toList(),
+                detail.getWeight() / 10.0,
+                imageUrl);
+    }
+
+    public Pokemon searchPokemonByName(String name) {
+        String url = "https://pokeapi.co/api/v2/pokemon/" + name.toLowerCase();
+        PokeDetail detail = restTemplate.getForObject(url, PokeDetail.class);
+
+        if (detail == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pokémon não encontrado");
+        }
+
+        return convertToPokemon(detail);
+    }
+
+    private Pokemon convertToPokemon(PokeDetail detail) {
         String imageUrl = null;
         if (detail.getSprites() != null) {
             if (detail.getSprites().getOther() != null
